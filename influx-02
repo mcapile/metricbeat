@@ -1,0 +1,91 @@
+# Instal telegraf influx and Chonograph
+#--------------------------------------
+rpm -Uvh https://dl.influxdata.com/telegraf/releases/telegraf-1.12.6-1.x86_64.rpm
+rpm -Uvh https://dl.influxdata.com/influxdb/releases/influxdb-1.7.9.x86_64.rpm
+rpm -Uvh https://dl.influxdata.com/chronograf/releases/chronograf-1.7.14.x86_64.rpm
+
+# disks and fs 
+#-------------------------------------
+Fdisk
+1 - lsbklk
+2 - fdisk /dev/sdb
+
+fdisk /dev/sdc  size 10 GB  type: 8e (LVM)
+
+pvcreate /dev/sdc1
+vgcreate influxdbvg /dev/sdc1
+lvcreate -l 100%FREE -n influxdblv influxdbvg
+mkfs.xfs /dev/influxdbvg/influxdblv
+
+vi /etc/fstab
+
+    /dev/mapper/influxdbvg-influxdblv         /var/lib/influxdb  xfs    defaults     0 0 
+
+
+mount /var/lib/influxdb
+chown influxdb.influxdb /var/lib/influxdb
+chmod 775 /var/lib/influxdb
+
+systemctl start influxdb
+
+#influx db configuration
+#-------------------------------------
+influx
+> CREATE USER admin WITH PASSWORD 'admin123' WITH ALL PRIVILEGES
+> exit
+
+systemctl stop influxdb
+vi /etc/influxdb/influxdb.conf
+
+    [data]
+    max-series-per-database = 0
+    max-values-per-tag = 0
+
+    [http]
+    enabled = true
+    flux-enabled = true
+    bind-address = ":8086"
+    auth-enabled = true
+    log-enabled = true
+    access-log-path = "/var/log/influxdb/influxdb.log"
+
+systemctl enable influxdb
+systemctl start influxdb
+
+influx
+> auth admin admin123
+> CREATE DATABASE monitor
+> CREATE USER monitor WITH PASSWORD 'admin123'
+> GRANT WRITE ON monitor TO monitor
+> exit
+
+#-------------------------------------
+vi /etc/telegraf/telegraf.conf
+
+    [agent]
+    interval = "60s"
+    hostname = "<your-hostname>"
+
+    [[outputs.influxdb]]
+    urls = ["http://ip:8086"]
+    database = "monitor"
+    skip_database_creation = true
+    username = "monitor"
+    password = "admin123"
+
+    [[inputs.net]]
+    [[inputs.netstat]]
+
+
+systemctl enable telegraf
+systemctl start telegraf
+
+systemctl start chronograf
+systemctl enable chronograf
+
+#test
+#-------------------------------------
+Browser:
+
+http://<ip>:8888
+
