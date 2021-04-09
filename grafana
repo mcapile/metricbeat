@@ -1,0 +1,72 @@
+===================================
+3 - INSTALL GRAFANA
+===================================
+
+#grana install
+#---------------------------------------
+
+yum localinstall https://dl.grafana.com/oss/release/grafana-6.5.1-1.x86_64.rpm
+
+
+#MYSQL Config
+#---------------------------------------
+mysql -u root
+mysql> CREATE DATABASE grafana;
+mysql> CREATE USER 'grafana'@'localhost' IDENTIFIED BY 'admin123';
+mysql> GRANT ALL PRIVILEGES ON grafana.* TO 'grafana'@'localhost';
+mysql> FLUSH PRIVILEGES;
+mysql> exit
+
+vi /etc/grafana/grafana.ini
+    app_mode = production
+    data = /var/lib/grafana
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+
+    [server]
+    protocol = http
+    http_port = 3000
+    
+    root_url = <yourip>:3000
+    
+    [database]
+    ;type = sqlite3
+    ;host = 127.0.0.1:3306
+    ;name = grafana
+    ;user = root
+    ;password =
+
+    type = mysql
+    host = 127.0.0.1:3306
+    name = grafana
+    user = grafana
+    password = admin123
+
+    ;path = grafana.db
+
+    [users]
+    allow_sign_up = false
+    allow_org_create = false
+    auto_assign_org = false
+    auto_assign_org_role = Viewer
+    default_theme = dark
+    
+    [auth.basic]
+    enabled = true
+
+    [auth.ldap]
+    enabled = true
+    config_file = /etc/grafana/ldap.toml
+    allow_sign_up = false
+
+   
+systemctl enable grafana-server
+systemctl start grafana-server
+#---------------------------------------
+Browser:
+
+http://<ip>:3000
+
+
+
+
