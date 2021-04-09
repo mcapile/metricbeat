@@ -1,0 +1,45 @@
+#instalacao Mysql
+------------------------------
+rpm -Uvh https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-12.noarch.rpm
+rpm -Uvh https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+yum install Percona-Server-server-57
+
+cp /etc/my.cnf /etc/my.cnf.orig
+rm -rf /etc/my.cnf
+update-alternatives --install /etc/my.cnf my.cnf "/etc/percona-server.cnf" 200
+
+# Criacao VG e file system 
+#------------------------------
+fdisk /dev/sdd  size 10 GB  type: 8e (LVM)
+
+pvcreate /dev/sdb1
+vgcreate mysqlvg /dev/sdb1
+lvcreate -l 100%FREE -n mysqllv mysqlvg
+mkfs.xfs /dev/mysqlvg/mysqllv
+
+vi /etc/fstab
+
+    /dev/mapper/mysqlvg-mysqllv         /var/lib/mysql  xfs    defaults     0 0 
+
+mkdir /var/lib/mysql
+mount /var/lib/mysql
+chown mysql.mysql /var/lib/mysql
+chmod 775 /var/lib/mysql
+
+systemctl start mysqld
+
+#pegar senha banco
+#------------------------------
+grep 'temporary password' /var/log/mysqld.log
+    A temporary password is generated for root@localhost: fF!9qycmZ9d0   leo4HdIVBi!:
+    
+# alterar a senha 
+#------------------------------
+mysql -u root -p
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'G9wYjyerKWoMdJDi&VvEvo#Y';
+mysql> exit
+
+mysql_config_editor set --user=root --password
+    Enter password: G9wYjyerKWoMdJDi&VvEvo#Y
+
+systemctl enable mysqld
